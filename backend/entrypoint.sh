@@ -5,6 +5,7 @@ python manage.py migrate --noinput
 python manage.py collectstatic --noinput
 python manage.py import_ingredients
 python manage.py seed_tags
+python manage.py seed_demo_data
 
 exec gunicorn foodgram.wsgi:application \
     --bind 0.0.0.0:8000 \

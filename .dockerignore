@@ -1,0 +1,17 @@
+.git/
+.github/
+frontend/
+infra/
+docs/
+postman_collection/
+**/__pycache__/
+*.py[cod]
+*.sqlite3
+.env
+.venv/
+env/
+venv/
+media/
+staticfiles/
+data/*
+!data/ingredients.json
