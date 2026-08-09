@@ -38,6 +38,31 @@ jobs:
       - name: Import ingredients
         run: python backend/manage.py import_ingredients
 
+      - name: Seed tags for API checks
+        run: |
+          python backend/manage.py shell -c "from recipes.models import Tag; [Tag.objects.get_or_create(name=name, slug=slug) for name, slug in [('Завтрак', 'breakfast'), ('Обед', 'lunch'), ('Ужин', 'dinner')]]"
+
+      - name: Start Django API
+        run: |
+          python backend/manage.py runserver 127.0.0.1:8000 > /tmp/foodgram-django.log 2>&1 &
+          for attempt in {1..30}; do
+            if curl -fsS http://127.0.0.1:8000/api/tags/ > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/foodgram-django.log
+          exit 1
+
+      - name: Run Postman collection
+        run: |
+          npx --yes newman run postman_collection/foodgram.postman_collection.json \
+            --env-var baseUrl=http://127.0.0.1:8000
+
+      - name: Show Django log on failure
+        if: failure()
+        run: cat /tmp/foodgram-django.log || true
+
       - name: Run Django tests
         run: python backend/manage.py test
 
