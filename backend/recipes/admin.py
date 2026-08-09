@@ -46,6 +46,13 @@ class RecipeAdmin(admin.ModelAdmin):
         return obj.favorited_by.count()
 
 
+@admin.register(RecipeIngredient)
+class RecipeIngredientAdmin(admin.ModelAdmin):
+    list_display = ('id', 'recipe', 'ingredient', 'amount')
+    search_fields = ('recipe__name', 'ingredient__name')
+    autocomplete_fields = ('recipe', 'ingredient')
+
+
 @admin.register(Favorite)
 class FavoriteAdmin(admin.ModelAdmin):
     list_display = ('id', 'user', 'recipe', 'created_at')
