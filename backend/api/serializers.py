@@ -1,9 +1,17 @@
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
+from django.db import transaction
 from rest_framework import serializers
 
-from recipes.models import Ingredient, Recipe, RecipeIngredient, Tag
+from recipes.models import (
+    Favorite,
+    Ingredient,
+    Recipe,
+    RecipeIngredient,
+    ShoppingCart,
+    Tag,
+)
 from users.models import Subscription
 
 from .fields import Base64ImageField
@@ -180,8 +188,8 @@ class RecipeReadSerializer(serializers.ModelSerializer):
         many=True,
         read_only=True,
     )
-    is_favorited = serializers.BooleanField(read_only=True)
-    is_in_shopping_cart = serializers.BooleanField(read_only=True)
+    is_favorited = serializers.SerializerMethodField()
+    is_in_shopping_cart = serializers.SerializerMethodField()
 
     class Meta:
         model = Recipe
@@ -198,6 +206,28 @@ class RecipeReadSerializer(serializers.ModelSerializer):
             'cooking_time',
         )
         read_only_fields = fields
+
+    def get_is_favorited(self, obj):
+        if hasattr(obj, 'is_favorited'):
+            return obj.is_favorited
+        request = self.context.get('request')
+        if request is None or not request.user.is_authenticated:
+            return False
+        return Favorite.objects.filter(
+            user=request.user,
+            recipe=obj,
+        ).exists()
+
+    def get_is_in_shopping_cart(self, obj):
+        if hasattr(obj, 'is_in_shopping_cart'):
+            return obj.is_in_shopping_cart
+        request = self.context.get('request')
+        if request is None or not request.user.is_authenticated:
+            return False
+        return ShoppingCart.objects.filter(
+            user=request.user,
+            recipe=obj,
+        ).exists()
 
 
 class RecipeWriteSerializer(serializers.ModelSerializer):
@@ -256,6 +286,7 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
             for item in ingredients
         )
 
+    @transaction.atomic
     def create(self, validated_data):
         ingredients = validated_data.pop('ingredients')
         tags = validated_data.pop('tags')
@@ -264,6 +295,7 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
         self._set_ingredients(recipe, ingredients)
         return recipe
 
+    @transaction.atomic
     def update(self, instance, validated_data):
         ingredients = validated_data.pop('ingredients', None)
         tags = validated_data.pop('tags', None)
