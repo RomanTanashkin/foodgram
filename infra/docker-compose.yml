@@ -43,7 +43,7 @@ services:
       - frontend_data:/usr/share/nginx/html/:ro
       - static_data:/var/html/static/:ro
       - media_data:/var/html/media/:ro
-      - ../docs/:/usr/share/nginx/html/api/docs/:ro
+      - ../docs/:/usr/share/nginx/docs/:ro
     depends_on:
       - backend
       - frontend
