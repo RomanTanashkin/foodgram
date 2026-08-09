@@ -251,6 +251,26 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
         )
         read_only_fields = ('id',)
 
+    def validate(self, attrs):
+        if self.instance is not None:
+            required_fields = (
+                'ingredients',
+                'tags',
+                'name',
+                'text',
+                'cooking_time',
+            )
+            missing = [
+                field
+                for field in required_fields
+                if field not in self.initial_data
+            ]
+            if missing:
+                raise serializers.ValidationError(
+                    {field: ['Обязательное поле.'] for field in missing}
+                )
+        return attrs
+
     def validate_ingredients(self, value):
         if not value:
             raise serializers.ValidationError(
