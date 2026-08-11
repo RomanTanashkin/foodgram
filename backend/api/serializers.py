@@ -4,6 +4,7 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
 from rest_framework import serializers
 
+from recipes.constants import MIN_INGREDIENT_AMOUNT
 from recipes.models import (
     Favorite,
     Ingredient,
@@ -177,7 +178,7 @@ class RecipeIngredientWriteSerializer(serializers.Serializer):
         queryset=Ingredient.objects.all(),
         source='ingredient',
     )
-    amount = serializers.IntegerField(min_value=1)
+    amount = serializers.IntegerField(min_value=MIN_INGREDIENT_AMOUNT)
 
 
 class RecipeReadSerializer(serializers.ModelSerializer):
