@@ -36,13 +36,18 @@ class Command(BaseCommand):
                 f'Не удалось прочитать {source}: {exc}'
             ) from exc
 
-        created = 0
-        for item in ingredients:
-            _, was_created = Ingredient.objects.get_or_create(
-                name=item['name'],
-                measurement_unit=item['measurement_unit'],
-            )
-            created += int(was_created)
+        before_count = Ingredient.objects.count()
+        Ingredient.objects.bulk_create(
+            (
+                Ingredient(
+                    name=item['name'],
+                    measurement_unit=item['measurement_unit'],
+                )
+                for item in ingredients
+            ),
+            ignore_conflicts=True,
+        )
+        created = Ingredient.objects.count() - before_count
 
         self.stdout.write(
             self.style.SUCCESS(
