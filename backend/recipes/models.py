@@ -2,10 +2,27 @@ from django.conf import settings
 from django.core.validators import MinValueValidator
 from django.db import models
 
+from .constants import (
+    INGREDIENT_NAME_MAX_LENGTH,
+    MEASUREMENT_UNIT_MAX_LENGTH,
+    MIN_COOKING_TIME,
+    MIN_INGREDIENT_AMOUNT,
+    RECIPE_NAME_MAX_LENGTH,
+    TAG_MAX_LENGTH,
+)
+
 
 class Tag(models.Model):
-    name = models.CharField('Название', max_length=32, unique=True)
-    slug = models.SlugField('Slug', max_length=32, unique=True)
+    name = models.CharField(
+        'Название',
+        max_length=TAG_MAX_LENGTH,
+        unique=True,
+    )
+    slug = models.SlugField(
+        'Slug',
+        max_length=TAG_MAX_LENGTH,
+        unique=True,
+    )
 
     class Meta:
         ordering = ('name',)
@@ -17,16 +34,26 @@ class Tag(models.Model):
 
 
 class Ingredient(models.Model):
-    name = models.CharField('Название', max_length=128, db_index=True)
+    name = models.CharField(
+        'Название',
+        max_length=INGREDIENT_NAME_MAX_LENGTH,
+        db_index=True,
+    )
     measurement_unit = models.CharField(
         'Единица измерения',
-        max_length=64,
+        max_length=MEASUREMENT_UNIT_MAX_LENGTH,
     )
 
     class Meta:
         ordering = ('name',)
         verbose_name = 'Ингредиент'
         verbose_name_plural = 'Ингредиенты'
+        constraints = [
+            models.UniqueConstraint(
+                fields=('name', 'measurement_unit'),
+                name='unique_ingredient_name_unit',
+            ),
+        ]
 
     def __str__(self):
         return f'{self.name} ({self.measurement_unit})'
@@ -39,7 +66,10 @@ class Recipe(models.Model):
         related_name='recipes',
         verbose_name='Автор',
     )
-    name = models.CharField('Название', max_length=256)
+    name = models.CharField(
+        'Название',
+        max_length=RECIPE_NAME_MAX_LENGTH,
+    )
     image = models.ImageField(
         'Изображение',
         upload_to='recipes/images/',
@@ -58,7 +88,7 @@ class Recipe(models.Model):
     )
     cooking_time = models.PositiveIntegerField(
         'Время приготовления',
-        validators=(MinValueValidator(1),),
+        validators=(MinValueValidator(MIN_COOKING_TIME),),
     )
     created_at = models.DateTimeField(
         'Дата публикации',
@@ -90,7 +120,7 @@ class RecipeIngredient(models.Model):
     )
     amount = models.PositiveIntegerField(
         'Количество',
-        validators=(MinValueValidator(1),),
+        validators=(MinValueValidator(MIN_INGREDIENT_AMOUNT),),
     )
 
     class Meta:
@@ -107,21 +137,29 @@ class RecipeIngredient(models.Model):
         return f'{self.recipe}: {self.ingredient} - {self.amount}'
 
 
-class Favorite(models.Model):
+class UserRecipeRelation(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        related_name='favorites',
+        related_name='%(class)s_relations',
         verbose_name='Пользователь',
     )
     recipe = models.ForeignKey(
         Recipe,
         on_delete=models.CASCADE,
-        related_name='favorited_by',
+        related_name='%(class)s_relations',
         verbose_name='Рецепт',
     )
     created_at = models.DateTimeField('Дата добавления', auto_now_add=True)
 
+    class Meta:
+        abstract = True
+
+    def __str__(self):
+        return f'{self.user}: {self.recipe}'
+
+
+class Favorite(UserRecipeRelation):
     class Meta:
         ordering = ('-created_at',)
         verbose_name = 'Избранное'
@@ -133,25 +171,8 @@ class Favorite(models.Model):
             ),
         ]
 
-    def __str__(self):
-        return f'{self.user}: {self.recipe}'
 
-
-class ShoppingCart(models.Model):
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name='shopping_cart',
-        verbose_name='Пользователь',
-    )
-    recipe = models.ForeignKey(
-        Recipe,
-        on_delete=models.CASCADE,
-        related_name='in_shopping_carts',
-        verbose_name='Рецепт',
-    )
-    created_at = models.DateTimeField('Дата добавления', auto_now_add=True)
-
+class ShoppingCart(UserRecipeRelation):
     class Meta:
         ordering = ('-created_at',)
         verbose_name = 'Список покупок'
@@ -162,6 +183,3 @@ class ShoppingCart(models.Model):
                 name='unique_shopping_cart_recipe',
             ),
         ]
-
-    def __str__(self):
-        return f'{self.user}: {self.recipe}'
