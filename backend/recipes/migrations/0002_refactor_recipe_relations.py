@@ -21,7 +21,7 @@ class Migration(migrations.Migration):
             name='recipe',
             field=models.ForeignKey(
                 on_delete=django.db.models.deletion.CASCADE,
-                related_name='favorite_relations',
+                related_name='%(class)s_relations',
                 to='recipes.recipe',
                 verbose_name='Рецепт',
             ),
@@ -31,7 +31,7 @@ class Migration(migrations.Migration):
             name='user',
             field=models.ForeignKey(
                 on_delete=django.db.models.deletion.CASCADE,
-                related_name='favorite_relations',
+                related_name='%(class)s_relations',
                 to=settings.AUTH_USER_MODEL,
                 verbose_name='Пользователь',
             ),
@@ -41,7 +41,7 @@ class Migration(migrations.Migration):
             name='recipe',
             field=models.ForeignKey(
                 on_delete=django.db.models.deletion.CASCADE,
-                related_name='shoppingcart_relations',
+                related_name='%(class)s_relations',
                 to='recipes.recipe',
                 verbose_name='Рецепт',
             ),
@@ -51,7 +51,7 @@ class Migration(migrations.Migration):
             name='user',
             field=models.ForeignKey(
                 on_delete=django.db.models.deletion.CASCADE,
-                related_name='shoppingcart_relations',
+                related_name='%(class)s_relations',
                 to=settings.AUTH_USER_MODEL,
                 verbose_name='Пользователь',
             ),
