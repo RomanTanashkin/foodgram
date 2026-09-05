@@ -1,32 +1,31 @@
 # Foodgram
 
-Foodgram — веб-приложение для публикации рецептов. Пользователи могут создавать рецепты, подписываться на авторов, добавлять рецепты в избранное и список покупок, а затем скачивать агрегированный список ингредиентов.
+Recipe-sharing web application. Users publish recipes, subscribe to authors, keep a favourites list and a shopping cart, and download the aggregated shopping list as a file.
 
-## Стек
+Built during the *Python Developer* course at Yandex Practicum (2025–2026). Every project was reviewed and accepted by a course mentor.
 
-- Python 3.12, Django, Django REST Framework, Djoser
-- PostgreSQL
-- Gunicorn
-- Nginx
-- Docker Compose
-- React (готовый SPA из стартового проекта)
-- GitHub Actions
+## Features
 
-## API
+- Recipes with tags, ingredients, images and cooking time
+- Subscriptions to authors, favourites, shopping cart
+- Shopping list export (ingredients summed across selected recipes)
+- Token authentication and user management (Djoser)
+- Admin panel with search and filters
+- Full REST API with OpenAPI documentation at `/api/docs/`
 
-После запуска проекта спецификация доступна по адресу:
+## Tech stack
 
-```text
-http://localhost/api/docs/
-```
+Python 3.12 · Django · Django REST Framework · Djoser · PostgreSQL · Gunicorn · Nginx · Docker Compose · GitHub Actions · React (frontend from the course starter kit)
 
-Основные API-ресурсы находятся под префиксом `/api/`.
+## API overview
 
-## Локальный запуск backend
+All endpoints live under `/api/`: `users`, `tags`, `ingredients`, `recipes`, plus `recipes/<id>/favorite/`, `recipes/<id>/shopping_cart/`, `recipes/<id>/get-link/`, `recipes/download_shopping_cart/`, `users/subscriptions/`, `users/me/avatar/`.
+
+## Run locally (backend only)
 
 ```bash
 python -m venv venv
-source venv/bin/activate
+source venv/bin/activate          # Windows: venv\Scripts\activate
 pip install -r backend/requirements.txt
 python backend/manage.py migrate
 python backend/manage.py import_ingredients
@@ -34,55 +33,35 @@ python backend/manage.py seed_tags
 python backend/manage.py runserver
 ```
 
-В Windows активировать окружение можно командой:
-
-```powershell
-venv\Scripts\activate
-```
-
-## Локальный запуск всего проекта в Docker
-
-Создайте локальный файл окружения:
+## Run the full stack with Docker
 
 ```bash
 cp infra/.env.example infra/.env
-```
-
-Затем запустите:
-
-```bash
 docker compose -f infra/docker-compose.yml up -d --build
 ```
 
-Приложение будет доступно по адресу `http://localhost`, а документация API — `http://localhost/api/docs/`.
+The app is served at `http://localhost`, the API docs at `http://localhost/api/docs/`. On first start the backend container applies migrations, collects static files, imports ingredients, creates base tags and seeds demo data (demo credentials are defined in `backend/recipes/management/commands/seed_demo_data.py`).
 
-При первом старте backend автоматически выполняет миграции, собирает Django static, импортирует исходный список ингредиентов, создаёт базовые теги и демонстрационные данные.
+## Quality checks
 
-## Проверка API
+The official Postman collection (`postman_collection/`) runs in CI together with Django system checks, migration checks and flake8:
 
-В репозитории находится официальная Postman-коллекция задания:
-
-```text
-postman_collection/foodgram.postman_collection.json
+```bash
+python backend/manage.py check
+python backend/manage.py makemigrations --check --dry-run
+flake8 backend --config=setup.cfg
+npx newman run postman_collection/foodgram.postman_collection.json --env-var baseUrl=http://127.0.0.1:8000
 ```
 
-Она автоматически запускается в GitHub Actions вместе с Django checks, тестами и flake8.
+## CI/CD
 
-## Production
+`.github/workflows/main.yml`:
 
-Для production используется `docker-compose.production.yml`. После завершения сборочного контейнера frontend постоянно работают три контейнера: PostgreSQL, Django + Gunicorn и Nginx.
+1. On every push to `main` — Django checks, migrations check, Postman collection, tests, flake8.
+2. On manual run (`workflow_dispatch`) — build and push backend/frontend images to Docker Hub, copy `docker-compose.production.yml` to the server via SSH and restart the containers.
 
-Перед первым деплоем на сервере необходимо создать `~/foodgram/.env` по образцу `infra/.env.production.example`.
+Production uses three long-running containers: PostgreSQL, Django + Gunicorn, Nginx. Required GitHub secrets: `DOCKER_USERNAME`, `DOCKER_PASSWORD`, `HOST`, `USER`, `SSH_KEY`, `SSH_PASSPHRASE`.
 
-CI/CD при пуше в `main`:
+## Author
 
-1. проверяет Django-проект и миграции;
-2. запускает официальную Postman-коллекцию и тесты;
-3. проверяет PEP 8;
-4. собирает и публикует backend/frontend образы в Docker Hub;
-5. копирует production-конфигурацию на сервер;
-6. обновляет контейнеры и конфигурацию системного Nginx.
-
-Для GitHub Actions используются секреты `DOCKER_USERNAME`, `DOCKER_PASSWORD`, `HOST`, `USER`, `SSH_KEY`, `SSH_PASSPHRASE`.
-
-Адрес production-сервера будет указан здесь после первого успешного деплоя.
+Roman Tanashkin — [github.com/RomanTanashkin](https://github.com/RomanTanashkin)
